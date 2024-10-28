@@ -1,4 +1,5 @@
 
+import os
 from flask import Flask
 from flask_migrate import Migrate
 from flask_restful import Api
@@ -10,7 +11,7 @@ def create_app():
     app = Flask(__name__)
 
     # Configure the database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///show.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///show.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Initialize db and migrate with the app
@@ -28,6 +29,8 @@ def create_app():
         api.add_resource(Guest_List_Resource, '/guests')
         api.add_resource(Appearance_Create_Resource, '/appearances')
 
+    with app.app_context():
+        db.create_all() 
     return app
 
 if __name__ == '__main__':

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: your-app-name  # Replace with your app's name
+    env: python
+    plan: free  # Change this to your desired plan
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "flask db upgrade && python app.py"  # Ensures migrations run before starting the app
+    envVars:
+      DATABASE_URL: your_postgresql_connection_string  # Replace with your actual PostgreSQL connection string
+      FLASK_ENV: production  # Set the Flask environment
+    regions:
+      - oregon 

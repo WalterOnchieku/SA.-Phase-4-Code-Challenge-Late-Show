@@ -1,6 +1,6 @@
 
 from flask_restful import Resource
-from models import Episode
+from models import Episode, Guest, Appearance
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # GET /episodes - Retrieve list of episodes
