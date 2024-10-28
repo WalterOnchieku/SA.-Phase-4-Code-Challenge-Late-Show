@@ -34,8 +34,7 @@ def create_app():
         api.add_resource(Guest_List_Resource, '/guests')
         api.add_resource(Appearance_Create_Resource, '/appearances')
 
-    # Run seeding if environment variable is set
-    with app.app_context():
+        # Run seeding if environment variable is set
         db.create_all()
         if os.getenv("SEED_DB") == "True":
             seed_data_from_csv('seed.csv')
