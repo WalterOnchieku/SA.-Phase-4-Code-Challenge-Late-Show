@@ -1,35 +1,32 @@
+
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_restful import Api
+from models import db  # Import db from models.py
 
-# Initialize the db and migrate globally
-db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
-    print("Creating Flask app...")
     app = Flask(__name__)
 
-    # Set up the configuration for the database
+    # Configure the database
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///show.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Initialize the db and migrate with the app
+    # Initialize db and migrate with the app
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Initialize the Api instance for flask-restful
+    # Initialize the API
     api = Api(app)
 
-    # Import routes within the app context to avoid circular imports
-    from routes import EpisodeList, EpisodeDetail, GuestList, AppearanceCreate
-
-    # Add resources to the Api instance
-    api.add_resource(EpisodeList, '/episodes')             # GET /episodes
-    api.add_resource(EpisodeDetail, '/episodes/<int:id>')  # GET /episodes/<id>
-    api.add_resource(GuestList, '/guests')                 # GET /guests
-    api.add_resource(AppearanceCreate, '/appearances')     # POST /appearances
+    # Import and register resources within app context 
+    with app.app_context():
+        from resources import Episode_List_Resource, Episode_Detail_Resource, Guest_List_Resource, Appearance_Create_Resource
+        api.add_resource(Episode_List_Resource, '/episodes')
+        api.add_resource(Episode_Detail_Resource, '/episodes/<int:id>')
+        api.add_resource(Guest_List_Resource, '/guests')
+        api.add_resource(Appearance_Create_Resource, '/appearances')
 
     return app
 
