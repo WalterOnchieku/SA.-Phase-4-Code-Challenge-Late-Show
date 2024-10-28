@@ -26,14 +26,12 @@ API Endpoints: Provides RESTful API routes for managing episodes, guests, and ap
 Clone the repository:
 
 ```bash
-Copy code
 git clone <https://github.com/WalterOnchieku/SA.-Phase-4-Code-Challenge-Late-Show>
 cd <repository-folder>
 ```
 Create and activate a virtual environment:
 
 ```bash
-Copy code
 python3 -m venv venv
 source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 ```
@@ -41,13 +39,11 @@ source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 Install dependencies:
 
 ```bash
-Copy code
 pip install -r requirements.txt
 ```
 Set up the SQLite database:
 
 ```bash
-Copy code
 flask db init
 flask db migrate -m "Initial migration"
 flask db upgrade
@@ -56,16 +52,14 @@ flask db upgrade
 Run the Flask app:
 
 ```bash
-Copy code
 flask run
 ```
-The app will be running locally on http://127.0.0.1:5555/.
+The app will be running locally on http://127.0.0.1:5555
 
 ## Database Migrations
 After making any changes to the models, run the following commands to apply migrations:
 
 ```bash
-Copy code
 flask db migrate -m "Describe your migration"
 flask db upgrade
 ```
@@ -78,11 +72,11 @@ Guests
 GET /guests: Get a list of all guests.
 Appearances
 POST /appearances: Create a new appearance (guest appearing in an episode).
-Seed Data (Optional)
-If you have a CSV file (seed.csv) to seed data:
+
+### Seed Data 
+A CSV file (seed.csv) was used to seed data. 
 
 ```bash
-Copy code
 python seed.py
 ```
-This will load episodes, guests, and appearances from the CSV file into the database.
+This will load episodes, guests, and appearances from the CSV file into the database if empty.

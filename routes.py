@@ -1,153 +1,148 @@
-from flask import Flask, jsonify, request
+from flask import jsonify, request
+from flask_restful import Api, Resource
 from models import Episode, Guest, Appearance
-from app import db, create_app
+from app import db  # Importing db to use for database operations
 
-# Initialize the Flask app
-app = create_app()
+# Initialize the Api instance (usually done in app.py)
+api = Api()
 
 # =====================================================================
-# Route: GET /episodes
+# Resource: EpisodeList (Handles GET /episodes)
 # =====================================================================
-@app.route('/episodes', methods=['GET'])
-def get_episodes():
-    # Query all Episode records
-    episodes = Episode.query.all()
-    
-    # Convert the result into a list of dictionaries
-    episode_list = [
-        {
+class EpisodeList(Resource):
+    # GET request to retrieve a list of all episodes
+    def get(self):
+        episodes = Episode.query.all()  # Query all Episode records from the database
+        
+        # Convert each episode to a dictionary for JSON serialization
+        episode_list = [
+            {
+                "id": episode.id,
+                "date": episode.date,
+                "number": episode.number
+            }
+            for episode in episodes
+        ]
+        return episode_list, 200  # Return the list with a 200 (OK) status
+
+# =====================================================================
+# Resource: EpisodeDetail (Handles GET /episodes/<id>)
+# =====================================================================
+class EpisodeDetail(Resource):
+    # GET request to retrieve details of a specific episode by ID
+    def get(self, id):
+        episode = Episode.query.get(id)  # Query the database for an episode by ID
+        if not episode:
+            return {"error": "Episode not found"}, 404  # Return 404 if episode doesn't exist
+
+        # Prepare episode details with appearances
+        episode_data = {
             "id": episode.id,
             "date": episode.date,
-            "number": episode.number
+            "number": episode.number,
+            "appearances": []
         }
-        for episode in episodes
-    ]
-    
-    # Return the JSON response
-    return jsonify(episode_list), 200
+
+        # Query appearances associated with this episode and add to response
+        appearances = Appearance.query.filter_by(episode_id=episode.id).all()
+        for appearance in appearances:
+            appearance_data = {
+                "id": appearance.id,
+                "episode_id": appearance.episode_id,
+                "guest_id": appearance.guest_id,
+                "rating": appearance.rating,
+                "guest": {
+                    "id": appearance.guest.id,
+                    "name": appearance.guest.name,
+                    "occupation": appearance.guest.occupation
+                }
+            }
+            episode_data["appearances"].append(appearance_data)
+
+        return episode_data, 200  # Return the episode data with a 200 (OK) status
 
 # =====================================================================
-# Route: GET /episodes/:id
+# Resource: GuestList (Handles GET /guests)
 # =====================================================================
-@app.route('/episodes/<int:id>', methods=['GET'])
-def get_episode(id):
-    # Fetch the Episode by ID
-    episode = Episode.query.get(id)
+class GuestList(Resource):
+    # GET request to retrieve a list of all guests
+    def get(self):
+        guests = Guest.query.all()  # Query all Guest records from the database
+        
+        # Convert each guest to a dictionary for JSON serialization
+        guest_list = [
+            {
+                "id": guest.id,
+                "name": guest.name,
+                "occupation": guest.occupation
+            }
+            for guest in guests
+        ]
+        return guest_list, 200  # Return the list with a 200 (OK) status
 
-    if not episode:
-        # If the episode doesn't exist, return a 404 error
-        return jsonify({"error": "Episode not found"}), 404
+# =====================================================================
+# Resource: AppearanceCreate (Handles POST /appearances)
+# =====================================================================
+class AppearanceCreate(Resource):
+    # POST request to create a new appearance record
+    def post(self):
+        data = request.get_json()  # Get JSON data from the request body
+        rating = data.get('rating')
+        episode_id = data.get('episode_id')
+        guest_id = data.get('guest_id')
 
-    # If episode exists, prepare the response data
-    episode_data = {
-        "id": episode.id,
-        "date": episode.date,
-        "number": episode.number,
-        "appearances": []
-    }
+        # Validate rating to ensure it is between 1 and 5
+        if not (1 <= rating <= 5):
+            return {"errors": ["Rating must be between 1 and 5"]}, 400
 
-    # Fetch associated appearances for this episode
-    appearances = Appearance.query.filter_by(episode_id=episode.id).all()
+        # Check if the referenced episode exists
+        episode = Episode.query.get(episode_id)
+        if not episode:
+            return {"errors": ["Episode not found"]}, 404
 
-    for appearance in appearances:
-        appearance_data = {
+        # Check if the referenced guest exists
+        guest = Guest.query.get(guest_id)
+        if not guest:
+            return {"errors": ["Guest not found"]}, 404
+
+        # Create a new appearance record
+        appearance = Appearance(
+            rating=rating,
+            episode_id=episode_id,
+            guest_id=guest_id
+        )
+
+        # Add and commit the new appearance to the database
+        db.session.add(appearance)
+        db.session.commit()
+
+        # Prepare response data for the newly created appearance
+        response_data = {
             "id": appearance.id,
-            "episode_id": appearance.episode_id,
-            "guest_id": appearance.guest_id,
             "rating": appearance.rating,
+            "guest_id": appearance.guest_id,
+            "episode_id": appearance.episode_id,
+            "episode": {
+                "id": episode.id,
+                "date": episode.date,
+                "number": episode.number
+            },
             "guest": {
-                "id": appearance.guest.id,
-                "name": appearance.guest.name,
-                "occupation": appearance.guest.occupation
+                "id": guest.id,
+                "name": guest.name,
+                "occupation": guest.occupation
             }
         }
-        episode_data["appearances"].append(appearance_data)
 
-    # Return the episode data as JSON
-    return jsonify(episode_data), 200
+        return response_data, 201  # Return the created appearance data with a 201 (Created) status
 
 # =====================================================================
-# Route: GET /guests
+# Adding Resources to Api
 # =====================================================================
-@app.route('/guests', methods=['GET'])
-def get_guests():
-    # Query all Guest records
-    guests = Guest.query.all()
-    
-    # Convert the result into a list of dictionaries
-    guest_list = [
-        {
-            "id": guest.id,
-            "name": guest.name,
-            "occupation": guest.occupation
-        }
-        for guest in guests
-    ]
-    
-    # Return the JSON response
-    return jsonify(guest_list), 200
+# Register resources with their endpoints
+api.add_resource(EpisodeList, '/episodes')            # GET /episodes
+api.add_resource(EpisodeDetail, '/episodes/<int:id>') # GET /episodes/<id>
+api.add_resource(GuestList, '/guests')                # GET /guests
+api.add_resource(AppearanceCreate, '/appearances')    # POST /appearances
 
-# =====================================================================
-# Route: POST /appearances
-# =====================================================================
-@app.route('/appearances', methods=['POST'])
-def create_appearance():
-    data = request.get_json()
 
-    # Validate required fields
-    rating = data.get('rating')
-    episode_id = data.get('episode_id')
-    guest_id = data.get('guest_id')
-
-    # Validate that rating is between 1 and 5
-    if not (1 <= rating <= 5):
-        return jsonify({"errors": ["Rating must be between 1 and 5"]}), 400
-
-    # Check if the episode exists
-    episode = Episode.query.get(episode_id)
-    if not episode:
-        return jsonify({"errors": ["Episode not found"]}), 404
-
-    # Check if the guest exists
-    guest = Guest.query.get(guest_id)
-    if not guest:
-        return jsonify({"errors": ["Guest not found"]}), 404
-
-    # Create new appearance
-    appearance = Appearance(
-        rating=rating,
-        episode_id=episode_id,
-        guest_id=guest_id
-    )
-    
-    # Add and commit to the database
-    db.session.add(appearance)
-    db.session.commit()
-
-    # Prepare the response data
-    response_data = {
-        "id": appearance.id,
-        "rating": appearance.rating,
-        "guest_id": appearance.guest_id,
-        "episode_id": appearance.episode_id,
-        "episode": {
-            "id": episode.id,
-            "date": episode.date,
-            "number": episode.number
-        },
-        "guest": {
-            "id": guest.id,
-            "name": guest.name,
-            "occupation": guest.occupation
-        }
-    }
-
-    # Return the created appearance data
-    return jsonify(response_data), 201
-
-# =====================================================================
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# =====================================================================
-
-if __name__ == '__main__':
-    app.run(debug=True)
