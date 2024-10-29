@@ -11,9 +11,9 @@ def create_app():
     app = Flask(__name__)
 
     # Configure the database
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///show.db')
-   # postgresql://my_db_xfw3_user:maZ4f6KPwKFe2ezMzXYhuhJTTQdPlMlh@dpg-csfv6am8ii6s73e62r40-a.oregon-postgres.render.com/my_db_xfw3
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'postgresql://my_db_xfw3_user:maZ4f6KPwKFe2ezMzXYhuhJTTQdPlMlh@dpg-csfv6am8ii6s73e62r40-a.oregon-postgres.render.com/my_db_xfw3'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.json.compact = False
 
     # Initialize db and migrate with the app
     db.init_app(app)
@@ -30,8 +30,8 @@ def create_app():
         api.add_resource(Guest_List_Resource, '/guests')
         api.add_resource(Appearance_Create_Resource, '/appearances')
 
-    with app.app_context():
-        db.create_all() 
+    # with app.app_context():
+    #     db.create_all() 
     return app
 
 # if __name__ == '__main__':

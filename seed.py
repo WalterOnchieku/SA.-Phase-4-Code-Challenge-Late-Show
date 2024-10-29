@@ -1,50 +1,47 @@
-import csv
-from app import db, create_app  
-from models import Episode, Guest, Appearance 
+from run import app
+# from app import app
+from models import db, Episode, Guest, Appearance
+from sqlalchemy import text
 
-app = create_app()  # Initialize the Flask app
+with app.app_context():
+    print('Deleting existing episodes, guests, and appearances...')
+    db.session.execute(text('DELETE FROM appearances;'))  # Clear appearances table
+    db.session.execute(text('DELETE FROM guests;'))       # Clear guests table
+    db.session.execute(text('DELETE FROM episodes;'))     # Clear episodes table
 
-# Define the path to the CSV file
-csv_file_path = 'seed.csv'
+    print('Creating episode objects...')
+    episode1 = Episode(date='2024-01-01', number=1)
+    episode2 = Episode(date='2024-01-08', number=2)
+    episode3 = Episode(date='2024-01-15', number=3)
+    episode4 = Episode(date='2024-01-22', number=4)
 
-def seed_data_from_csv(file_path):
-    with app.app_context():  # Ensure the script runs in the app context
-        with open(file_path, 'r') as file:
-            reader = csv.DictReader(file)
-            
-            # Store already created episodes and guests to avoid duplicates
-            episode_cache = {}
-            guest_cache = {}
+    print('Creating guest objects...')
+    guest1 = Guest(name='Alice Smith', occupation='Actress')
+    guest2 = Guest(name='Bob Johnson', occupation='Musician')
+    guest3 = Guest(name='Charlie Brown', occupation='Comedian')
+    guest4 = Guest(name='Diana Prince', occupation='Writer')
 
-            for row in reader:
-                # Create or get Episode from cache
-                episode_date = row['Show']
-                if episode_date not in episode_cache:
-                    episode = Episode(date=episode_date, number=None)  # number could be None or derived
-                    db.session.add(episode)
-                    db.session.flush()  # This ensures the episode gets an ID
-                    episode_cache[episode_date] = episode
-                else:
-                    episode = episode_cache[episode_date]
+    print('Adding episode objects to transaction...')
+    db.session.add_all([episode1, episode2, episode3, episode4])
 
-                # Create or get Guest from cache
-                guest_name = row['Raw_Guest_List']
-                occupation = row['GoogleKnowlege_Occupation']
-                if guest_name not in guest_cache:
-                    guest = Guest(name=guest_name, occupation=occupation)
-                    db.session.add(guest)
-                    db.session.flush()  # Ensure guest gets an ID
-                    guest_cache[guest_name] = guest
-                else:
-                    guest = guest_cache[guest_name]
+    print('Adding guest objects to transaction...')
+    db.session.add_all([guest1, guest2, guest3, guest4])
 
-                # Create Appearance linking Guest and Episode
-                appearance = Appearance(episode_id=episode.id, guest_id=guest.id, rating=None)
-                db.session.add(appearance)
+    print('Committing episodes and guests transaction...')
+    db.session.commit()
 
-            # Commit all changes to the database
-            db.session.commit()
-            print("Database seeding completed successfully!")
+    print('Creating appearance objects...')
+    appearance1 = Appearance(rating=5, episode_id=1, guest_id=1)  # Episode 1, Alice Smith
+    appearance2 = Appearance(rating=4, episode_id=1, guest_id=2)  # Episode 1, Bob Johnson
+    appearance3 = Appearance(rating=3, episode_id=2, guest_id=1)  # Episode 2, Alice Smith
+    appearance4 = Appearance(rating=2, episode_id=3, guest_id=3)  # Episode 3, Charlie Brown
+    appearance5 = Appearance(rating=5, episode_id=4, guest_id=4)  # Episode 4, Diana Prince
+    appearance6 = Appearance(rating=4, episode_id=4, guest_id=2)  # Episode 4, Bob Johnson
 
-if __name__ == '__main__':
-    seed_data_from_csv('seed.csv')
+    print('Adding appearance objects to transaction...')
+    db.session.add_all([appearance1, appearance2, appearance3, appearance4, appearance5, appearance6])
+
+    print('Committing appearance transaction...')
+    db.session.commit()
+
+    print('Complete.')
